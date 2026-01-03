@@ -36,3 +36,35 @@ The skeleton is complete when:
 2. `pnpm dev` runs client + server with live reload
 3. Browser shows API ping response
 4. All tests pass and validate behavior (not implementation details)
+
+## Development Workflow
+
+This project is developed and shared on GitHub using continuous delivery practices.
+
+### Work in Small Slices
+
+- Build features end-to-end in small vertical slices
+- Each slice adds testable, visible value
+- Avoid large horizontal rewrites or scaffolding
+- Ship complete functionality incrementally
+
+### Commit Frequently
+
+- Commit after each meaningful step (test passes, feature works, refactor complete)
+- Prefer many small commits over large batches
+- Each commit should represent shippable progress, not partial work
+- Write clear commit messages that explain what and why
+
+### Keep Main Green
+
+- `main` branch must always build and pass all tests
+- Features are added incrementally via frequent, small commits to `main`
+- Avoid long-lived feature branches that drift from `main`
+- CI runs on every push to verify the build stays healthy
+
+### Why This Approach
+
+**Fast feedback:** Small changes mean quick test runs and rapid validation
+**Low risk:** Small commits are easy to understand, review, and revert if needed
+**Continuous delivery:** Every commit leaves the project in a deployable state
+**Public accountability:** Code is developed in the open with readable history

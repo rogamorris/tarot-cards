@@ -2,11 +2,14 @@
 
 ## Project Philosophy
 
-This project follows a **walking skeleton** approach:
-- Build the smallest possible end-to-end slice first
-- Add features incrementally in small, testable chunks
-- Keep the feedback loop fast (< 1 second for tests, < 5 seconds for builds)
+This project is developed in the open on GitHub using continuous delivery practices:
+- Build features end-to-end in small vertical slices
+- Commit frequently with shippable progress at each step
+- Keep `main` always working, buildable, and deployable
+- Optimize for fast feedback and low-risk changes
 - Favor simplicity over premature optimization
+
+**Working in public:** All code is developed openly on GitHub. Write clear commit messages, keep diffs small, and assume your work will be read by others.
 
 ## Development Workflow
 
@@ -24,20 +27,32 @@ This project follows a **walking skeleton** approach:
 
 ### Key Principles
 
-**Keep diffs small:**
-- One logical change per commit
-- Prefer multiple small PRs over one large PR
-- Each change should be independently reviewable
+**Make small, frequent commits:**
+- Commit after each meaningful step (test passes, feature works, refactor complete)
+- One logical change per commit with a clear message
+- Prefer many small commits over batched work
+- Each commit should leave the code in a working state
+
+**Build vertical slices:**
+- Complete features end-to-end (UI → API → test) rather than horizontal layers
+- Each slice should add visible, testable value
+- Avoid scaffolding or refactoring that doesn't ship functionality
 
 **Test behavior, not implementation:**
 - Test what the code does, not how it does it
 - Tests should validate shape/parseability, not exact values (e.g., timestamps)
 - Mock external dependencies (network, time, randomness)
 
-**Avoid premature abstraction:**
-- Three strikes rule: extract abstractions after third duplication
-- Prefer clear duplication over unclear abstraction
-- Delete unused code immediately
+**Ask before making large changes:**
+- Large refactors, dependency additions, or architectural shifts require explicit approval
+- When in doubt, propose the approach before implementing
+- Irreversible changes (deletions, migrations) need user confirmation
+
+**Write for a public audience:**
+- Code will be pushed to GitHub and read by others
+- Keep diffs clear and focused
+- Use descriptive names and comments where logic isn't obvious
+- Commit messages should explain what changed and why
 
 **Maintain clear boundaries:**
 - `src/client/` - Thin view layer only (easy to swap frameworks later)
@@ -89,12 +104,13 @@ src/
 
 ## What NOT to Do
 
+❌ Make large, batched commits — commit frequently instead
+❌ Build horizontal layers without shipping end-to-end value
 ❌ Add dependencies without clear justification
 ❌ Implement features not yet needed
-❌ Add frameworks/libraries "just in case"
-❌ Write tests that check implementation details
 ❌ Skip tests because "it's simple"
-❌ Make large commits with mixed concerns
+❌ Leave the code in a broken or non-buildable state
+❌ Make large refactors without asking first
 ❌ Add business logic to client view code
 
 ## Continuous Delivery Readiness
