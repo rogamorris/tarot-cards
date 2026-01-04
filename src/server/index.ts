@@ -1,17 +1,8 @@
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
-import type { PingResponse } from '../shared/types.js'
 
 const app = new Hono()
-
-app.get('/api/ping', (c) => {
-  const response: PingResponse = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-  }
-  return c.json(response)
-})
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
