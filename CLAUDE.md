@@ -22,7 +22,8 @@ This project is developed in the open on GitHub using continuous delivery practi
 
 ### Fast Feedback Loop
 - **`pnpm dev`** - Start dev servers (auto-restart on changes)
-- **`pnpm test`** - Run tests in watch mode (only re-runs changed tests)
+- **`pnpm test:watch`** - Run tests in watch mode (only re-runs changed tests)
+- **`pnpm test`** - Run all tests once (CI mode)
 - **`pnpm build`** - Verify production build works
 
 ### Key Principles
