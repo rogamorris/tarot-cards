@@ -50,4 +50,37 @@ describe('drawCards', () => {
 
     expect(isDifferent).toBe(true)
   })
+
+  it('draws N unique cards (no duplicates)', () => {
+    const rng = createSeededRNG(42)
+    const result = drawCards(5, rng)
+
+    expect(result).toHaveLength(5)
+
+    // Check all cards are unique
+    const cardIds = result.map(r => r.card.id)
+    const uniqueIds = new Set(cardIds)
+    expect(uniqueIds.size).toBe(5)
+  })
+
+  it('handles edge case: draw 1 card', () => {
+    const rng = createSeededRNG(123)
+    const result = drawCards(1, rng)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].card).toBeDefined()
+    expect(typeof result[0].reversed).toBe('boolean')
+  })
+
+  it('handles edge case: draw 10 cards', () => {
+    const rng = createSeededRNG(456)
+    const result = drawCards(10, rng)
+
+    expect(result).toHaveLength(10)
+
+    // All cards unique
+    const cardIds = result.map(r => r.card.id)
+    const uniqueIds = new Set(cardIds)
+    expect(uniqueIds.size).toBe(10)
+  })
 })

@@ -33,20 +33,26 @@ export function createDefaultRNG(): RNG {
 }
 
 /**
- * Draws N cards from the tarot deck.
- * For the walking skeleton, only draws 1 card (hardcoded).
+ * Draws N unique cards from the tarot deck (no duplicates).
  * Each card has a 50% chance of being reversed.
  *
- * @param count Number of cards to draw (for walking skeleton, always 1)
+ * @param count Number of cards to draw (1-10)
  * @param rng Random number generator (for testing with seeds)
  * @returns Array of drawn cards with orientation
  */
 export function drawCards(count: number, rng: RNG = createDefaultRNG()): DrawResult {
+  // Create pool of available card indices
+  const availableIndices = Array.from({ length: TAROT_DECK.length }, (_, i) => i)
   const result: DrawResult = []
 
   for (let i = 0; i < count; i++) {
-    // Pick a random card from the deck
-    const cardIndex = Math.floor(rng.next() * TAROT_DECK.length)
+    // Pick a random index from remaining available cards
+    const randomIndex = Math.floor(rng.next() * availableIndices.length)
+    const cardIndex = availableIndices[randomIndex]
+
+    // Remove selected index from pool (ensures uniqueness)
+    availableIndices.splice(randomIndex, 1)
+
     const card = TAROT_DECK[cardIndex]
 
     // Determine orientation (50/50 upright/reversed)
