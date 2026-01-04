@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  base: '/tarot-cards/',
   root: 'src/client',
   build: {
     outDir: '../../dist/public',
