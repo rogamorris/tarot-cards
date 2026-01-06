@@ -2,11 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="description" content="Draw tarot cards digitally. A beautiful, minimalist tarot card drawing experience.">
   <title>Tarot Cards</title>
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Preload fonts for better performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
 </head>
 <body>
-  <div id="app">Loading...</div>
+  <div id="app">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <span>Loading...</span>
+    </div>
+  </div>
   <script type="module" src="/main.ts"></script>
 </body>
 </html>
