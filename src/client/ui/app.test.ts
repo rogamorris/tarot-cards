@@ -9,7 +9,7 @@ describe('renderDrawButton', () => {
 
     const button = container.querySelector('#draw-button')
     expect(button).toBeTruthy()
-    expect(button?.textContent).toBe('Draw Cards')
+    expect(button?.textContent?.trim()).toBe('Draw Cards')
   })
 
   it('renders number input with validation', () => {
@@ -21,7 +21,8 @@ describe('renderDrawButton', () => {
     expect(input?.type).toBe('number')
     expect(input?.min).toBe('1')
     expect(input?.max).toBe('10')
-    expect(input?.value).toBe('1')
+    // Default value is 3 (common 3-card spread)
+    expect(input?.value).toBe('3')
   })
 
   it('includes title', () => {
@@ -76,7 +77,7 @@ describe('renderDrawResult', () => {
 
     const copyButton = container.querySelector('#copy-button')
     expect(copyButton).toBeTruthy()
-    expect(copyButton?.textContent).toBe('Copy to Clipboard')
+    expect(copyButton?.textContent?.trim()).toBe('Copy to Clipboard')
   })
 
   it('includes draw again button', () => {
@@ -92,7 +93,7 @@ describe('renderDrawResult', () => {
 
     const drawAgainButton = container.querySelector('#draw-again-button')
     expect(drawAgainButton).toBeTruthy()
-    expect(drawAgainButton?.textContent).toBe('Draw Again')
+    expect(drawAgainButton?.textContent?.trim()).toBe('Draw Again')
   })
 
   it('renders multiple cards', () => {

@@ -5,17 +5,32 @@ let currentDraw: DrawResult | null = null
 
 export function renderDrawButton(container: HTMLElement): void {
   container.innerHTML = `
-    <div>
-      <h1>Tarot Cards</h1>
-      <label for="card-count">Number of cards:</label>
-      <input
-        type="number"
-        id="card-count"
-        min="1"
-        max="10"
-        value="1"
-      />
-      <button id="draw-button">Draw Cards</button>
+    <div class="app-container">
+      <header>
+        <h1 class="title">Tarot Cards</h1>
+        <p class="subtitle">Draw your cards</p>
+      </header>
+
+      <div class="input-group">
+        <label class="input-label" for="card-count">Number of cards to draw</label>
+        <div class="input-wrapper">
+          <input
+            type="number"
+            id="card-count"
+            class="input-field"
+            min="1"
+            max="10"
+            value="3"
+            placeholder="1-10"
+            aria-describedby="card-count-hint"
+          />
+        </div>
+        <p id="card-count-hint" class="input-hint">Choose between 1 and 10 cards</p>
+      </div>
+
+      <button id="draw-button" class="btn btn-primary btn-lg btn-block">
+        Draw Cards
+      </button>
     </div>
   `
 
@@ -44,21 +59,50 @@ export function handleDraw(): void {
 }
 
 export function renderDrawResult(container: HTMLElement, draw: DrawResult): void {
+  const cardCount = draw.length
   const cardsHTML = draw
-    .map((drawnCard) => {
+    .map((drawnCard, index) => {
       const orientation = drawnCard.reversed ? 'reversed' : 'upright'
-      return `<p><strong>${drawnCard.card.name}</strong> (${orientation})</p>`
+      const orientationClass = `card-orientation--${orientation}`
+      return `
+        <div class="card-item">
+          <div class="card-content">
+            <div class="card-info">
+              <span class="card-number">Card ${index + 1}</span>
+              <strong class="card-name">${drawnCard.card.name}</strong>
+            </div>
+            <span class="card-orientation ${orientationClass}">${orientation}</span>
+          </div>
+        </div>
+      `
     })
     .join('')
 
   container.innerHTML = `
-    <div>
-      <h1>Tarot Cards</h1>
-      <div id="cards">
+    <div class="app-container">
+      <header>
+        <h1 class="title">Tarot Cards</h1>
+        <p class="subtitle">Your reading</p>
+      </header>
+
+      <div class="results-header">
+        <span class="results-count">${cardCount} card${cardCount !== 1 ? 's' : ''} drawn</span>
+      </div>
+
+      <div id="cards" class="cards-container">
         ${cardsHTML}
       </div>
-      <button id="copy-button">Copy to Clipboard</button>
-      <button id="draw-again-button">Draw Again</button>
+
+      <div class="divider"></div>
+
+      <div class="btn-group">
+        <button id="copy-button" class="btn btn-secondary">
+          Copy to Clipboard
+        </button>
+        <button id="draw-again-button" class="btn btn-primary">
+          Draw Again
+        </button>
+      </div>
     </div>
   `
 
@@ -79,11 +123,15 @@ export function handleCopy(): void {
   const copyButton = document.getElementById('copy-button') as HTMLButtonElement
   if (copyButton) {
     const originalText = copyButton.textContent
-    copyButton.textContent = 'Copied to clipboard!'
+    const originalClass = copyButton.className
+
+    copyButton.textContent = 'Copied!'
+    copyButton.className = 'btn btn-success'
     copyButton.disabled = true
 
     setTimeout(() => {
       copyButton.textContent = originalText
+      copyButton.className = originalClass
       copyButton.disabled = false
     }, 2000)
   }
