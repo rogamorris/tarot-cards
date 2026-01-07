@@ -1,10 +1,12 @@
 # Tarot Cards
 
-A web application for drawing tarot cards. Choose how many cards to draw, see them revealed with simple animations, and copy a clean text summary (including upright/reversed orientations) for pasting elsewhere.
+A beautiful web application for drawing tarot cards. Choose how many cards to draw, see them revealed with elegant animations, and copy a clean text summary (including upright/reversed orientations) for pasting elsewhere.
+
+**Try it live:** https://rogamorris.github.io/tarot-cards/
 
 ## Status
 
-This project is in **early-stage development** and under active development. The current implementation is a walking skeleton demonstrating the architecture and development workflow. Tarot card functionality is not yet implemented.
+This project is under active development.
 
 **Note:** This project is not currently accepting external contributions.
 
