@@ -61,21 +61,6 @@ This project is developed in the open on GitHub using continuous delivery practi
 - `src/shared/` - Types and pure logic used by both client and server
 - Keep business logic out of UI code
 
-## Project Structure
-
-```
-src/
-├── client/          # Frontend (vanilla TS for now)
-│   ├── api/         # API client layer
-│   ├── ui/          # UI/view layer
-│   └── *.test.ts    # Colocated tests
-├── server/          # Backend (Hono)
-│   ├── *.ts         # API routes
-│   └── *.test.ts    # Colocated tests
-└── shared/          # Shared types and utilities
-    └── types.ts
-```
-
 ## When Adding New Features
 
 1. **Start with a failing test** - Write the test that describes the new behavior
