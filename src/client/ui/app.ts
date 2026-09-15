@@ -65,15 +65,25 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
       const orientation = drawnCard.reversed ? 'reversed' : 'upright'
       const orientationClass = `card-orientation--${orientation}`
       const revealDelay = `${index * 80}ms`
+      const reversedClass = drawnCard.reversed ? ' is-reversed' : ''
       return `
         <div class="card-item" style="--card-delay: ${revealDelay};">
-          <div class="card-content">
-            <div class="card-info">
-              <span class="card-number">Card ${index + 1}</span>
-              <strong class="card-name">${drawnCard.card.name}</strong>
+          <button class="card-flip" aria-label="Reveal card ${index + 1}: ${drawnCard.card.name}">
+            <div class="card-flip-inner">
+              <div class="card-face card-face--back" aria-hidden="true">
+                <span class="card-back-symbol">✦</span>
+              </div>
+              <div class="card-face card-face--front${reversedClass}">
+                <div class="card-content">
+                  <div class="card-info">
+                    <span class="card-number">Card ${index + 1}</span>
+                    <strong class="card-name">${drawnCard.card.name}</strong>
+                  </div>
+                  <span class="card-orientation ${orientationClass}">${orientation}</span>
+                </div>
+              </div>
             </div>
-            <span class="card-orientation ${orientationClass}">${orientation}</span>
-          </div>
+          </button>
         </div>
       `
     })
@@ -88,6 +98,7 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
 
       <div class="results-header">
         <span class="results-count">${cardCount} card${cardCount !== 1 ? 's' : ''} drawn</span>
+        <span id="spread-progress" class="spread-progress">Tap a card to reveal it</span>
       </div>
 
       <div id="cards" class="cards-container">
@@ -97,7 +108,7 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
       <div class="divider"></div>
 
       <div class="btn-group">
-        <button id="copy-button" class="btn btn-secondary">
+        <button id="copy-button" class="btn btn-secondary" hidden>
           Copy to Clipboard
         </button>
         <button id="draw-again-button" class="btn btn-primary">
@@ -107,11 +118,49 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
     </div>
   `
 
+  container.querySelectorAll('.card-flip').forEach((card) => {
+    card.addEventListener('click', onCardClick)
+  })
+
   const copyButton = container.querySelector('#copy-button') as HTMLButtonElement
   copyButton.addEventListener('click', handleCopy)
 
   const drawAgainButton = container.querySelector('#draw-again-button') as HTMLButtonElement
   drawAgainButton.addEventListener('click', handleDrawAgain)
+}
+
+export function onCardClick(event: Event): void {
+  const card = event.currentTarget as HTMLButtonElement
+  card.classList.toggle('is-flipped')
+
+  const root = card.closest('.app-container')
+  if (root) {
+    updateSpreadState(root as HTMLElement)
+  }
+}
+
+export function updateSpreadState(root: HTMLElement): void {
+  const total = root.querySelectorAll('.card-flip').length
+  const revealed = root.querySelectorAll('.card-flip.is-flipped').length
+
+  const progress = root.querySelector('#spread-progress')
+  if (progress) {
+    progress.textContent =
+      revealed === 0
+        ? 'Tap a card to reveal it'
+        : revealed < total
+          ? `${revealed} of ${total} revealed`
+          : 'All cards revealed'
+  }
+
+  const copyButton = root.querySelector('#copy-button')
+  if (copyButton) {
+    if (revealed === total && total > 0) {
+      copyButton.removeAttribute('hidden')
+    } else {
+      copyButton.setAttribute('hidden', '')
+    }
+  }
 }
 
 export function handleCopy(): void {

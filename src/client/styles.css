@@ -416,6 +416,11 @@ body::before {
   width: 100%;
 }
 
+/* Hidden buttons stay hidden (overrides .btn display) */
+.btn[hidden] {
+  display: none;
+}
+
 /* ----------------------------------------
    BUTTON GROUP
    ---------------------------------------- */
@@ -427,32 +432,26 @@ body::before {
 }
 
 /* ----------------------------------------
-   CARDS DISPLAY
+   CARDS DISPLAY - TAP-TO-REVEAL SPREAD
    ---------------------------------------- */
 .cards-container {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-4);
 }
 
 .card-item {
-  position: relative;
-  padding: var(--space-5) var(--space-6);
-  background: var(--gradient-card-bg);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+  width: 100%;
+  max-width: 200px;
+  justify-self: center;
 
-  /* Staggered reveal animation; delay is set per-card via --card-delay.
-     Fill mode "backwards" keeps the card hidden during its delay without
-     overriding later styles (e.g. hover transforms) once finished. */
-  animation: card-reveal var(--duration-slow) var(--ease-out) backwards;
+  /* Staggered spread entrance; delay is set per-card via --card-delay */
+  animation: spread-enter var(--duration-slow) var(--ease-out) backwards;
   animation-delay: var(--card-delay, 0ms);
 }
 
-@keyframes card-reveal {
+@keyframes spread-enter {
   from {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
@@ -463,27 +462,93 @@ body::before {
   }
 }
 
-/* Subtle shimmer effect on cards */
-.card-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
+/* The flippable card itself (a real <button> for keyboard support) */
+.card-flip {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
   width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.03),
-    transparent
-  );
-  animation: shimmer 2s infinite;
-  animation-delay: var(--card-delay, 0ms);
+  aspect-ratio: 5 / 8;
+  perspective: 1200px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-@keyframes shimmer {
-  0% { left: -100%; }
-  50%, 100% { left: 100%; }
+.card-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg); /* face-down until tapped */
+  transition: transform var(--duration-slower) var(--ease-out);
+}
+
+.card-flip.is-flipped .card-flip-inner {
+  transform: rotateY(360deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Card back - pure CSS mystical design */
+.card-face--back {
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(139, 92, 246, 0.35) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgba(139, 92, 246, 0.07) 0 2px, transparent 2px 9px),
+    linear-gradient(160deg, #1c1a30 0%, #12121a 100%);
+  border: 1px solid var(--color-border-accent);
+}
+
+.card-face--back::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: calc(var(--radius-xl) - 10px);
+  pointer-events: none;
+}
+
+.card-back-symbol {
+  font-size: var(--text-3xl);
+  color: var(--color-gold-light);
+  text-shadow: 0 0 24px rgba(245, 158, 11, 0.55);
+}
+
+/* Card front */
+.card-face--front {
+  background: var(--gradient-card-bg);
+  border: 1px solid var(--color-border-default);
+  padding: var(--space-4);
+  display: flex;
+}
+
+.card-face--front .card-content {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.card-face--front .card-name {
+  font-size: var(--text-lg);
+}
+
+/* Reversed cards appear upside-down, like a physical deck */
+.card-face--front.is-reversed .card-content {
+  transform: rotate(180deg);
 }
 
 .card-content {
@@ -628,13 +693,22 @@ body::before {
    RESULTS HEADER
    ---------------------------------------- */
 .results-header {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
   margin-bottom: var(--space-2);
 }
 
 .results-count {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
+  letter-spacing: var(--tracking-wide);
+}
+
+.spread-progress {
+  font-size: var(--text-sm);
+  color: var(--color-accent-secondary);
   letter-spacing: var(--tracking-wide);
 }
 
@@ -664,10 +738,6 @@ body::before {
     flex: 1;
   }
 
-  .card-item {
-    padding: var(--space-6) var(--space-8);
-  }
-
   .card-name {
     font-size: var(--text-2xl);
   }
@@ -681,19 +751,14 @@ body::before {
     max-width: 560px;
   }
 
-  /* Hover effects only on devices that support them */
+  /* Hover lift only on devices that support it */
   @media (hover: hover) {
-    .card-item {
-      transition:
-        transform var(--duration-fast) var(--ease-out),
-        box-shadow var(--duration-fast) var(--ease-out),
-        border-color var(--duration-fast) var(--ease-out);
+    .card-flip {
+      transition: transform var(--duration-fast) var(--ease-out);
     }
 
-    .card-item:hover {
-      transform: translateY(-2px);
-      border-color: var(--color-border-strong);
-      box-shadow: var(--shadow-lg);
+    .card-flip:hover {
+      transform: translateY(-4px);
     }
   }
 }
@@ -728,18 +793,14 @@ body::before {
     flex-direction: column;
   }
 
-  /* Slightly smaller cards on mobile to fit more */
-  .card-item {
-    padding: var(--space-4) var(--space-5);
+  /* Tighter spread on small screens */
+  .cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: var(--space-3);
   }
 
-  .card-name {
-    font-size: var(--text-lg);
-  }
-
-  /* Reduce animation complexity on mobile for performance */
-  .card-item::before {
-    display: none;
+  .card-face--front .card-name {
+    font-size: var(--text-base);
   }
 }
 
@@ -753,11 +814,6 @@ body::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-
-  .card-item {
-    opacity: 1;
-    transform: none;
   }
 }
 
@@ -774,12 +830,15 @@ body::before {
     display: none;
   }
 
-  .card-item {
+  /* Show card fronts in print */
+  .card-flip-inner {
+    transform: none;
+  }
+
+  .card-face--front {
     background: white;
     border: 1px solid #ccc;
     box-shadow: none;
-    opacity: 1;
-    transform: none;
   }
 }
 

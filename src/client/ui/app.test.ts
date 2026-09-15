@@ -147,6 +147,121 @@ describe('renderDrawResult', () => {
     expect(cards[1].style.getPropertyValue('--card-delay')).toBe('80ms')
     expect(cards[2].style.getPropertyValue('--card-delay')).toBe('160ms')
   })
+
+  it('renders a face-down back and a front face for each card', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+      {
+        card: { id: 'the-tower', name: 'The Tower', suit: 'Major Arcana' },
+        reversed: true,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    expect(container.querySelectorAll('.card-face--back')).toHaveLength(2)
+    expect(container.querySelectorAll('.card-face--front')).toHaveLength(2)
+  })
+
+  it('marks reversed card fronts to display upside-down', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-tower', name: 'The Tower', suit: 'Major Arcana' },
+        reversed: true,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    const front = container.querySelector('.card-face--front')
+    expect(front?.classList.contains('is-reversed')).toBe(true)
+  })
+
+  it('does not mark upright card fronts as reversed', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    const front = container.querySelector('.card-face--front')
+    expect(front?.classList.contains('is-reversed')).toBe(false)
+  })
+
+  it('starts with all cards face-down and copy hidden', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+      {
+        card: { id: 'the-tower', name: 'The Tower', suit: 'Major Arcana' },
+        reversed: true,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    expect(container.querySelectorAll('.card-flip.is-flipped')).toHaveLength(0)
+    const copyButton = container.querySelector('#copy-button')
+    expect(copyButton?.hasAttribute('hidden')).toBe(true)
+    expect(container.textContent).toContain('Tap a card to reveal it')
+  })
+
+  it('reveals a card when tapped', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+      {
+        card: { id: 'the-tower', name: 'The Tower', suit: 'Major Arcana' },
+        reversed: true,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    const firstCard = container.querySelector('.card-flip') as HTMLButtonElement
+    firstCard.click()
+
+    expect(firstCard.classList.contains('is-flipped')).toBe(true)
+    expect(container.textContent).toContain('1 of 2 revealed')
+  })
+
+  it('shows the copy button once all cards are revealed', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+      {
+        card: { id: 'the-tower', name: 'The Tower', suit: 'Major Arcana' },
+        reversed: true,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    const cards = container.querySelectorAll<HTMLButtonElement>('.card-flip')
+    cards.forEach((card) => card.click())
+
+    const copyButton = container.querySelector('#copy-button')
+    expect(copyButton?.hasAttribute('hidden')).toBe(false)
+    expect(container.textContent).toContain('All cards revealed')
+  })
 })
 
 describe('formatDrawForCopy', () => {
