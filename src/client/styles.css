@@ -190,6 +190,20 @@ body::before {
   flex-direction: column;
   align-items: center;
   gap: var(--space-8);
+
+  /* Gentle fade-in each time a view renders (idle <-> revealed) */
+  animation: view-enter var(--duration-slow) var(--ease-out);
+}
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ----------------------------------------
@@ -431,25 +445,18 @@ body::before {
   box-shadow: var(--shadow-md);
   overflow: hidden;
 
-  /* Animation setup */
-  opacity: 0;
-  transform: translateY(20px) scale(0.95);
-  animation: card-reveal var(--duration-slow) var(--ease-out) forwards;
+  /* Staggered reveal animation; delay is set per-card via --card-delay.
+     Fill mode "backwards" keeps the card hidden during its delay without
+     overriding later styles (e.g. hover transforms) once finished. */
+  animation: card-reveal var(--duration-slow) var(--ease-out) backwards;
+  animation-delay: var(--card-delay, 0ms);
 }
 
-/* Staggered animation delay */
-.card-item:nth-child(1) { animation-delay: 0ms; }
-.card-item:nth-child(2) { animation-delay: 80ms; }
-.card-item:nth-child(3) { animation-delay: 160ms; }
-.card-item:nth-child(4) { animation-delay: 240ms; }
-.card-item:nth-child(5) { animation-delay: 320ms; }
-.card-item:nth-child(6) { animation-delay: 400ms; }
-.card-item:nth-child(7) { animation-delay: 480ms; }
-.card-item:nth-child(8) { animation-delay: 560ms; }
-.card-item:nth-child(9) { animation-delay: 640ms; }
-.card-item:nth-child(10) { animation-delay: 720ms; }
-
 @keyframes card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -471,7 +478,7 @@ body::before {
     transparent
   );
   animation: shimmer 2s infinite;
-  animation-delay: inherit;
+  animation-delay: var(--card-delay, 0ms);
 }
 
 @keyframes shimmer {
