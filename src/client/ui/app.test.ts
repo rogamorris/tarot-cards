@@ -121,6 +121,32 @@ describe('renderDrawResult', () => {
     expect(container.textContent).toContain('reversed')
     expect(container.textContent).toContain('The Star')
   })
+
+  it('staggers card reveal with a per-card delay', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+      {
+        card: { id: 'the-tower', name: 'The Tower', suit: 'Major Arcana' },
+        reversed: true,
+      },
+      {
+        card: { id: 'the-star', name: 'The Star', suit: 'Major Arcana' },
+        reversed: false,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    const cards = container.querySelectorAll<HTMLElement>('.card-item')
+    expect(cards).toHaveLength(3)
+    expect(cards[0].style.getPropertyValue('--card-delay')).toBe('0ms')
+    expect(cards[1].style.getPropertyValue('--card-delay')).toBe('80ms')
+    expect(cards[2].style.getPropertyValue('--card-delay')).toBe('160ms')
+  })
 })
 
 describe('formatDrawForCopy', () => {

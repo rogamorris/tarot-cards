@@ -64,8 +64,9 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
     .map((drawnCard, index) => {
       const orientation = drawnCard.reversed ? 'reversed' : 'upright'
       const orientationClass = `card-orientation--${orientation}`
+      const revealDelay = `${index * 80}ms`
       return `
-        <div class="card-item">
+        <div class="card-item" style="--card-delay: ${revealDelay};">
           <div class="card-content">
             <div class="card-info">
               <span class="card-number">Card ${index + 1}</span>
