@@ -1,6 +1,31 @@
-import { describe, it, expect } from 'vitest'
-import { renderDrawButton, renderDrawResult, formatDrawForCopy } from './app.js'
-import type { DrawResult } from '../../shared/types.js'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { renderDrawButton, renderDrawResult, formatDrawForCopy, cardImageUrl } from './app.js'
+import type { Card, DrawResult } from '../../shared/types.js'
+
+describe('cardImageUrl', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('maps a major arcana card to its artwork file', () => {
+    const card: Card = { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' }
+
+    expect(cardImageUrl(card).endsWith('cards/the-fool.jpg')).toBe(true)
+  })
+
+  it('maps a minor arcana card to its artwork file', () => {
+    const card: Card = { id: 'ace-of-cups', name: 'Ace of Cups', suit: 'Cups' }
+
+    expect(cardImageUrl(card).endsWith('cards/ace-of-cups.jpg')).toBe(true)
+  })
+
+  it('prefixes the artwork path with the Vite base path', () => {
+    vi.stubEnv('BASE_URL', '/tarot-cards/')
+    const card: Card = { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' }
+
+    expect(cardImageUrl(card)).toBe('/tarot-cards/cards/the-fool.jpg')
+  })
+})
 
 describe('renderDrawButton', () => {
   it('renders draw button', () => {
@@ -34,7 +59,7 @@ describe('renderDrawButton', () => {
 })
 
 describe('renderDrawResult', () => {
-  it('displays card name and orientation', () => {
+  it('labels each card with its name and orientation for assistive tech', () => {
     const container = document.createElement('div')
     const draw: DrawResult = [
       {
@@ -45,11 +70,12 @@ describe('renderDrawResult', () => {
 
     renderDrawResult(container, draw)
 
-    expect(container.textContent).toContain('The Fool')
-    expect(container.textContent).toContain('upright')
+    const button = container.querySelector('.card-flip')
+    expect(button?.getAttribute('aria-label')).toContain('The Fool')
+    expect(button?.getAttribute('aria-label')).toContain('upright')
   })
 
-  it('displays reversed orientation', () => {
+  it('labels reversed cards with their orientation', () => {
     const container = document.createElement('div')
     const draw: DrawResult = [
       {
@@ -60,8 +86,32 @@ describe('renderDrawResult', () => {
 
     renderDrawResult(container, draw)
 
-    expect(container.textContent).toContain('The Tower')
-    expect(container.textContent).toContain('reversed')
+    const button = container.querySelector('.card-flip')
+    expect(button?.getAttribute('aria-label')).toContain('The Tower')
+    expect(button?.getAttribute('aria-label')).toContain('reversed')
+  })
+
+  it('renders the card artwork image on the front face', () => {
+    const container = document.createElement('div')
+    const draw: DrawResult = [
+      {
+        card: { id: 'the-fool', name: 'The Fool', suit: 'Major Arcana' },
+        reversed: false,
+      },
+      {
+        card: { id: 'ace-of-cups', name: 'Ace of Cups', suit: 'Cups' },
+        reversed: true,
+      },
+    ]
+
+    renderDrawResult(container, draw)
+
+    const images = container.querySelectorAll('.card-face--front img.card-art')
+    expect(images).toHaveLength(2)
+    expect((images[0] as HTMLImageElement).src.endsWith('cards/the-fool.jpg')).toBe(true)
+    expect((images[1] as HTMLImageElement).src.endsWith('cards/ace-of-cups.jpg')).toBe(true)
+    // Decorative: the button's aria-label already names the card
+    images.forEach((img) => expect((img as HTMLImageElement).alt).toBe(''))
   })
 
   it('includes copy button', () => {
@@ -115,11 +165,15 @@ describe('renderDrawResult', () => {
 
     renderDrawResult(container, draw)
 
-    expect(container.textContent).toContain('The Fool')
-    expect(container.textContent).toContain('upright')
-    expect(container.textContent).toContain('The Tower')
-    expect(container.textContent).toContain('reversed')
-    expect(container.textContent).toContain('The Star')
+    const labels = Array.from(container.querySelectorAll('.card-flip')).map((button) =>
+      button.getAttribute('aria-label'),
+    )
+    expect(labels).toHaveLength(3)
+    expect(labels[0]).toContain('The Fool')
+    expect(labels[0]).toContain('upright')
+    expect(labels[1]).toContain('The Tower')
+    expect(labels[1]).toContain('reversed')
+    expect(labels[2]).toContain('The Star')
   })
 
   it('staggers card reveal with a per-card delay', () => {

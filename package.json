@@ -10,7 +10,8 @@
     "start": "node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke-test.js"
+    "smoke": "node scripts/smoke-test.js",
+    "cards": "node scripts/download-cards.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

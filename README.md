@@ -43,6 +43,15 @@ This project is built incrementally using:
 
 See [CLAUDE.md](./CLAUDE.md) for detailed development guidelines and [docs/architecture.md](./docs/architecture.md) for technical decisions.
 
+## Card Artwork
+
+Card images are the **Rider–Waite–Smith tarot**, illustrated by Pamela Colman
+Smith and first published by William Rider & Son in 1909. This artwork is in
+the **public domain** (published 1909; the illustrator died in 1951). The files
+are fetched from [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Rider-Waite_tarot_deck)
+by `scripts/download-cards.mjs` — run `pnpm cards` to (re)download the 78
+images into `src/client/public/cards/`.
+
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.

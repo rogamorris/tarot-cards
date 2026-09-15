@@ -1,7 +1,17 @@
-import type { DrawResult } from '../../shared/types.js'
+import type { Card, DrawResult } from '../../shared/types.js'
 import { drawCards } from '../../shared/draw.js'
 
 let currentDraw: DrawResult | null = null
+
+/**
+ * URL of the card's artwork image. Images live in the Vite public dir at
+ * `cards/<card-id>.jpg` (see scripts/download-cards.mjs), so they are served
+ * relative to the app's base path.
+ */
+export function cardImageUrl(card: Card): string {
+  const base = import.meta.env.BASE_URL ?? '/'
+  return `${base}cards/${card.id}.jpg`
+}
 
 export function renderDrawButton(container: HTMLElement): void {
   container.innerHTML = `
@@ -63,24 +73,17 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
   const cardsHTML = draw
     .map((drawnCard, index) => {
       const orientation = drawnCard.reversed ? 'reversed' : 'upright'
-      const orientationClass = `card-orientation--${orientation}`
       const revealDelay = `${index * 80}ms`
       const reversedClass = drawnCard.reversed ? ' is-reversed' : ''
       return `
         <div class="card-item" style="--card-delay: ${revealDelay};">
-          <button class="card-flip" aria-label="Reveal card ${index + 1}: ${drawnCard.card.name}">
+          <button class="card-flip" aria-label="Reveal card ${index + 1}: ${drawnCard.card.name} (${orientation})">
             <div class="card-flip-inner">
               <div class="card-face card-face--back" aria-hidden="true">
                 <span class="card-back-symbol">✦</span>
               </div>
               <div class="card-face card-face--front${reversedClass}">
-                <div class="card-content">
-                  <div class="card-info">
-                    <span class="card-number">Card ${index + 1}</span>
-                    <strong class="card-name">${drawnCard.card.name}</strong>
-                  </div>
-                  <span class="card-orientation ${orientationClass}">${orientation}</span>
-                </div>
+                <img class="card-art" src="${cardImageUrl(drawnCard.card)}" alt="" draggable="false" />
               </div>
             </div>
           </button>
