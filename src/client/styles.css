@@ -818,3 +818,189 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
+
+/* ----------------------------------------
+   SHUFFLE PHASE — choosing ritual
+   ---------------------------------------- */
+.shuffle-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44vh;
+  padding: var(--space-8) 0;
+}
+
+.shuffle-deck {
+  position: relative;
+  width: 120px;
+  aspect-ratio: 500 / 863;
+}
+
+.deck-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(139, 92, 246, 0.35) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgba(139, 92, 246, 0.07) 0 2px, transparent 2px 9px),
+    linear-gradient(160deg, #1c1a30 0%, #12121a 100%);
+  border: 1px solid var(--color-border-accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.deck-layer--1 {
+  animation: shuffle-left 0.55s var(--ease-out) 3 alternate;
+}
+
+.deck-layer--2 {
+  animation: shuffle-right 0.55s var(--ease-out) 3 alternate;
+}
+
+@keyframes shuffle-left {
+  from { transform: translateX(0) rotate(0deg); }
+  to { transform: translateX(-56px) rotate(-10deg); }
+}
+
+@keyframes shuffle-right {
+  from { transform: translateX(0) rotate(0deg); }
+  to { transform: translateX(56px) rotate(10deg); }
+}
+
+/* ----------------------------------------
+   FAN PHASE — choose your cards
+   ---------------------------------------- */
+@property --pull {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.fan-app {
+  max-width: 100%;
+}
+
+.fan-stage {
+  /* Ring geometry: the circle's center sits below the stage, so its top
+     arc sweeps across the visible area like a conveyor of cards. */
+  --fan-radius: 440px;
+  position: relative;
+  width: 100%;
+  height: 46vh;
+  min-height: 340px;
+  overflow: hidden;
+}
+
+.fan-spinner {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 150px);
+  width: 0;
+  height: 0;
+  animation: fan-spin 120s linear infinite;
+}
+
+.fan-card-pos {
+  position: absolute;
+  left: 0;
+  top: 0;
+  --pull: 0px;
+  transform:
+    rotate(var(--angle))
+    translateY(calc(-1 * (var(--fan-radius) + var(--pull))))
+    rotate(calc(-1 * var(--angle)));
+  transition: --pull var(--duration-slow) var(--ease-out);
+  z-index: 1;
+}
+
+.fan-card-pos.is-selected {
+  --pull: 72px;
+  z-index: 10;
+}
+
+.fan-card-upright {
+  animation: fan-spin-rev 120s linear infinite;
+}
+
+.fan-card-center {
+  transform: translate(-50%, -50%);
+}
+
+.fan-card {
+  appearance: none;
+  width: 54px;
+  aspect-ratio: 500 / 863;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(139, 92, 246, 0.35) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgba(139, 92, 246, 0.07) 0 2px, transparent 2px 9px),
+    linear-gradient(160deg, #1c1a30 0%, #12121a 100%);
+  border: 1px solid var(--color-border-accent);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--duration-slow) var(--ease-out),
+    box-shadow var(--duration-slow) var(--ease-out);
+}
+
+.fan-card .card-back-symbol {
+  font-size: var(--text-lg);
+}
+
+.fan-card-pos.is-selected .fan-card {
+  transform: scale(1.2);
+  box-shadow:
+    0 0 0 2px var(--color-gold-light),
+    0 0 32px rgba(245, 158, 11, 0.5),
+    var(--shadow-lg);
+}
+
+.fan-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  text-align: center;
+}
+
+.fan-count {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-gold-light);
+  background: rgba(20, 18, 31, 0.8);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.fan-hint {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: var(--space-4) 0;
+}
+
+@keyframes fan-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fan-spin-rev {
+  to { transform: rotate(-360deg); }
+}
+
+@media (min-width: 700px) {
+  .fan-stage {
+    --fan-radius: 600px;
+  }
+
+  .fan-spinner {
+    top: calc(100% + 200px);
+  }
+}

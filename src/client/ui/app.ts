@@ -1,5 +1,6 @@
 import type { Card, DrawResult } from '../../shared/types.js'
-import { drawCards } from '../../shared/draw.js'
+import { drawSelectedCards } from '../../shared/draw.js'
+import { TAROT_DECK } from '../../shared/deck.js'
 
 let currentDraw: DrawResult | null = null
 
@@ -63,8 +64,151 @@ export function handleDraw(): void {
   const input = document.getElementById('card-count') as HTMLInputElement
   const count = parseInt(input.value) || 1
 
-  currentDraw = drawCards(count)
+  startSelection(appElement, count)
+}
 
+/**
+ * Pure selection toggle for the fan view: adds the id when under the limit,
+ * removes it when already selected, and refuses to exceed the limit.
+ */
+export function toggleSelection(selected: string[], id: string, max: number): string[] {
+  if (selected.includes(id)) {
+    return selected.filter((s) => s !== id)
+  }
+  if (selected.length >= max) {
+    return selected
+  }
+  return [...selected, id]
+}
+
+/** Begins the card-choosing ritual: shuffle animation, then the fan. */
+export function startSelection(container: HTMLElement, count: number): void {
+  renderShuffleView(container, count)
+  window.setTimeout(() => {
+    renderFanView(container, count)
+  }, 1700)
+}
+
+export function renderShuffleView(container: HTMLElement, count: number): void {
+  container.innerHTML = `
+    <div class="app-container">
+      <header>
+        <h1 class="title">Tarot Cards</h1>
+        <p class="subtitle">Shuffling the deck…</p>
+      </header>
+
+      <div class="shuffle-stage" aria-hidden="true">
+        <div class="shuffle-deck">
+          <div class="deck-layer deck-layer--1"></div>
+          <div class="deck-layer deck-layer--2"></div>
+          <div class="deck-layer deck-layer--3"></div>
+        </div>
+      </div>
+
+      <p class="fan-hint">Preparing ${count} card${count !== 1 ? 's' : ''} for you to choose</p>
+    </div>
+  `
+}
+
+export function renderFanView(container: HTMLElement, count: number): void {
+  const cardsHTML = TAROT_DECK.map((card, index) => {
+    const angle = (index / TAROT_DECK.length) * 360
+    return `
+      <div class="fan-card-pos" style="--angle: ${angle}deg;">
+        <div class="fan-card-upright">
+          <button class="fan-card" data-card-id="${card.id}" aria-pressed="false" aria-label="Choose a card">
+            <span class="card-back-symbol">✦</span>
+          </button>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  container.innerHTML = `
+    <div class="app-container fan-app" data-choose-count="${count}">
+      <header>
+        <h1 class="title">Tarot Cards</h1>
+        <p class="subtitle">Choose ${count} card${count !== 1 ? 's' : ''}</p>
+      </header>
+
+      <div class="fan-stage">
+        <div class="fan-spinner" aria-hidden="false">
+          ${cardsHTML}
+        </div>
+        <div class="fan-center">
+          <span id="fan-count" class="fan-count">0 of ${count} chosen</span>
+        </div>
+      </div>
+
+      <p class="fan-hint">Tap a card to pull it out — tap again to put it back</p>
+
+      <div class="btn-group">
+        <button id="fan-cancel-button" class="btn btn-secondary">
+          Start Over
+        </button>
+        <button id="reveal-button" class="btn btn-primary" hidden>
+          Reveal My Cards
+        </button>
+      </div>
+    </div>
+  `
+
+  container.querySelectorAll('.fan-card').forEach((card) => {
+    card.addEventListener('click', onFanCardClick)
+  })
+
+  const revealButton = container.querySelector('#reveal-button') as HTMLButtonElement
+  revealButton.addEventListener('click', handleRevealSelection)
+
+  const cancelButton = container.querySelector('#fan-cancel-button') as HTMLButtonElement
+  cancelButton.addEventListener('click', () => renderDrawButton(container))
+}
+
+function onFanCardClick(event: Event): void {
+  const card = event.currentTarget as HTMLButtonElement
+  const root = card.closest('.app-container') as HTMLElement
+  if (!root) return
+
+  const count = parseInt(root.dataset.chooseCount || '0', 10)
+  const currentlySelected = root.querySelectorAll('.fan-card-pos.is-selected .fan-card')
+  const selectedIds = Array.from(currentlySelected).map(
+    (el) => (el as HTMLButtonElement).dataset.cardId as string,
+  )
+
+  const next = toggleSelection(selectedIds, card.dataset.cardId as string, count)
+  const isNowSelected = next.includes(card.dataset.cardId as string)
+
+  card.closest('.fan-card-pos')?.classList.toggle('is-selected', isNowSelected)
+  card.setAttribute('aria-pressed', String(isNowSelected))
+
+  updateFanState(root, next.length, count)
+}
+
+export function updateFanState(root: HTMLElement, chosen: number, count: number): void {
+  const counter = root.querySelector('#fan-count')
+  if (counter) {
+    counter.textContent = `${chosen} of ${count} chosen`
+  }
+
+  const revealButton = root.querySelector('#reveal-button')
+  if (revealButton) {
+    if (chosen === count && count > 0) {
+      revealButton.removeAttribute('hidden')
+    } else {
+      revealButton.setAttribute('hidden', '')
+    }
+  }
+}
+
+export function handleRevealSelection(): void {
+  const appElement = document.getElementById('app')
+  if (!appElement) return
+
+  const ids = Array.from(
+    appElement.querySelectorAll('.fan-card-pos.is-selected .fan-card'),
+  ).map((el) => (el as HTMLButtonElement).dataset.cardId as string)
+
+  currentDraw = drawSelectedCards(ids)
   renderDrawResult(appElement, currentDraw)
 }
 

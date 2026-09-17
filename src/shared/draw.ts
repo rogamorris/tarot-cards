@@ -33,6 +33,24 @@ export function createDefaultRNG(): RNG {
 }
 
 /**
+ * Builds a draw result from user-chosen card ids (e.g. picked from the fan).
+ * Each card still has a 50% chance of being reversed.
+ *
+ * @param ids Card ids in the order they were chosen
+ * @param rng Random number generator (for testing with seeds)
+ * @returns Array of drawn cards with orientation
+ */
+export function drawSelectedCards(ids: string[], rng: RNG = createDefaultRNG()): DrawResult {
+  return ids.map((id) => {
+    const card = TAROT_DECK.find((c) => c.id === id)
+    if (!card) {
+      throw new Error(`Unknown card id: ${id}`)
+    }
+    return { card, reversed: rng.next() < 0.5 }
+  })
+}
+
+/**
  * Draws N unique cards from the tarot deck (no duplicates).
  * Each card has a 50% chance of being reversed.
  *

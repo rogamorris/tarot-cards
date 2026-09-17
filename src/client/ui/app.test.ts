@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderDrawButton, renderDrawResult, formatDrawForCopy, cardImageUrl } from './app.js'
+import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, formatDrawForCopy, cardImageUrl } from './app.js'
 import type { Card, DrawResult } from '../../shared/types.js'
 
 describe('cardImageUrl', () => {
@@ -366,5 +366,113 @@ describe('formatDrawForCopy', () => {
     expect(result).toBe(
       '1. The Fool (upright)\n2. The Tower (reversed)\n3. The Star (upright)'
     )
+  })
+})
+
+describe('toggleSelection', () => {
+  it('adds a card when under the limit', () => {
+    expect(toggleSelection([], 'the-fool', 3)).toEqual(['the-fool'])
+  })
+
+  it('removes a card that is already selected', () => {
+    expect(toggleSelection(['the-fool', 'the-tower'], 'the-fool', 3)).toEqual(['the-tower'])
+  })
+
+  it('does not add beyond the limit', () => {
+    const selected = ['a', 'b', 'c']
+    expect(toggleSelection(selected, 'd', 3)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('does not mutate the input array', () => {
+    const selected = ['the-fool']
+    toggleSelection(selected, 'the-tower', 3)
+    expect(selected).toEqual(['the-fool'])
+  })
+})
+
+describe('renderShuffleView', () => {
+  it('renders the shuffling deck visual and status', () => {
+    const container = document.createElement('div')
+    renderShuffleView(container, 3)
+
+    expect(container.querySelector('.shuffle-stage')).toBeTruthy()
+    expect(container.querySelectorAll('.deck-layer')).toHaveLength(3)
+    expect(container.textContent).toContain('Shuffling')
+  })
+})
+
+describe('renderFanView', () => {
+  it('renders one face-down card per deck card', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    expect(container.querySelectorAll('.fan-card')).toHaveLength(78)
+  })
+
+  it('starts with zero chosen and the confirm button hidden', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    expect(container.querySelector('#fan-count')?.textContent).toContain('0 of 3')
+    expect(container.querySelector('#reveal-button')?.hasAttribute('hidden')).toBe(true)
+  })
+
+  it('selects a card when tapped and updates the count', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const card = container.querySelector('.fan-card') as HTMLButtonElement
+    card.click()
+
+    expect(card.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(true)
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('#fan-count')?.textContent).toContain('1 of 3')
+  })
+
+  it('deselects a selected card when tapped again', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const card = container.querySelector('.fan-card') as HTMLButtonElement
+    card.click()
+    card.click()
+
+    expect(card.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(false)
+    expect(container.querySelector('#fan-count')?.textContent).toContain('0 of 3')
+  })
+
+  it('shows the reveal button once the requested count is chosen', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 2)
+
+    const cards = container.querySelectorAll('.fan-card')
+    ;(cards[0] as HTMLButtonElement).click()
+    expect(container.querySelector('#reveal-button')?.hasAttribute('hidden')).toBe(true)
+    ;(cards[1] as HTMLButtonElement).click()
+    expect(container.querySelector('#reveal-button')?.hasAttribute('hidden')).toBe(false)
+    expect(container.querySelector('#fan-count')?.textContent).toContain('2 of 2')
+  })
+
+  it('does not select more cards than requested', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 1)
+
+    const cards = container.querySelectorAll('.fan-card')
+    ;(cards[0] as HTMLButtonElement).click()
+    ;(cards[1] as HTMLButtonElement).click()
+
+    expect(container.querySelectorAll('.fan-card-pos.is-selected')).toHaveLength(1)
+    expect(container.querySelector('#fan-count')?.textContent).toContain('1 of 1')
+  })
+
+  it('positions each card at its own angle around the circle', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const positions = container.querySelectorAll<HTMLElement>('.fan-card-pos')
+    const angles = new Set(
+      Array.from(positions).map((p) => p.style.getPropertyValue('--angle')),
+    )
+    expect(angles.size).toBe(78)
   })
 })

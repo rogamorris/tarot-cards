@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { drawCards, createSeededRNG } from './draw.js'
+import { drawCards, drawSelectedCards, createSeededRNG } from './draw.js'
 import { TAROT_DECK } from './deck.js'
 
 describe('drawCards', () => {
@@ -82,5 +82,33 @@ describe('drawCards', () => {
     const cardIds = result.map(r => r.card.id)
     const uniqueIds = new Set(cardIds)
     expect(uniqueIds.size).toBe(10)
+  })
+})
+
+describe('drawSelectedCards', () => {
+  it('returns the chosen cards in order', () => {
+    const rng = createSeededRNG(7)
+    const result = drawSelectedCards(['the-fool', 'ace-of-cups', 'the-tower'], rng)
+
+    expect(result.map((r) => r.card.id)).toEqual(['the-fool', 'ace-of-cups', 'the-tower'])
+  })
+
+  it('assigns orientation from the RNG', () => {
+    const result = drawSelectedCards(['the-fool'], createSeededRNG(42))
+    const expected = drawSelectedCards(['the-fool'], createSeededRNG(42))
+
+    expect(result[0].reversed).toBe(expected[0].reversed)
+    expect(typeof result[0].reversed).toBe('boolean')
+  })
+
+  it('throws for an unknown card id', () => {
+    expect(() => drawSelectedCards(['not-a-card'], createSeededRNG(1))).toThrow()
+  })
+
+  it('handles a single card', () => {
+    const result = drawSelectedCards(['the-star'], createSeededRNG(9))
+
+    expect(result).toHaveLength(1)
+    expect(result[0].card.name).toBe('The Star')
   })
 })
