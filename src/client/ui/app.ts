@@ -114,7 +114,7 @@ export function renderFanView(container: HTMLElement, count: number): void {
   const cardsHTML = TAROT_DECK.map((card, index) => {
     const angle = (index / TAROT_DECK.length) * 360
     return `
-      <div class="fan-card-pos" style="--angle: ${angle}deg;">
+      <div class="fan-card-pos" style="--angle: ${angle}deg; --i: ${index};">
         <div class="fan-card-upright">
           <button class="fan-card" data-card-id="${card.id}" aria-pressed="false" aria-label="Choose a card">
             <span class="card-back-symbol">✦</span>
@@ -162,6 +162,21 @@ export function renderFanView(container: HTMLElement, count: number): void {
 
   const cancelButton = container.querySelector('#fan-cancel-button') as HTMLButtonElement
   cancelButton.addEventListener('click', () => renderDrawButton(container))
+
+  // Deal the cards out from the deck after the first paint, so each
+  // card flies from the stack to its slot on the ring.
+  const stage = container.querySelector('.fan-stage') as HTMLElement | null
+  if (stage) {
+    requestAnimationFrame(() => requestAnimationFrame(() => dealFanCards(stage)))
+  }
+}
+
+/**
+ * Starts the fan deal animation: cards fly from the deck position
+ * out to their slots on the ring, then the ring begins to spin.
+ */
+export function dealFanCards(stage: HTMLElement): void {
+  stage.classList.add('is-dealt')
 }
 
 function onFanCardClick(event: Event): void {
@@ -258,7 +273,10 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
         <button id="copy-button" class="btn btn-secondary" hidden>
           Copy to Clipboard
         </button>
-        <button id="draw-again-button" class="btn btn-primary">
+        <button id="reveal-all-button" class="btn btn-primary">
+          Reveal All
+        </button>
+        <button id="draw-again-button" class="btn btn-secondary">
           Draw Again
         </button>
       </div>
@@ -274,6 +292,20 @@ export function renderDrawResult(container: HTMLElement, draw: DrawResult): void
 
   const drawAgainButton = container.querySelector('#draw-again-button') as HTMLButtonElement
   drawAgainButton.addEventListener('click', handleDrawAgain)
+
+  const revealAllButton = container.querySelector('#reveal-all-button') as HTMLButtonElement
+  revealAllButton.addEventListener('click', handleRevealAll)
+}
+
+export function handleRevealAll(event: Event): void {
+  const button = event.currentTarget as HTMLButtonElement | null
+  const root = button?.closest('.app-container')
+  if (!root) return
+
+  root.querySelectorAll('.card-flip').forEach((card) => {
+    card.classList.add('is-flipped')
+  })
+  updateSpreadState(root as HTMLElement)
 }
 
 export function onCardClick(event: Event): void {
@@ -306,6 +338,16 @@ export function updateSpreadState(root: HTMLElement): void {
       copyButton.removeAttribute('hidden')
     } else {
       copyButton.setAttribute('hidden', '')
+    }
+  }
+
+  // Once everything is face-up there is nothing left to reveal.
+  const revealAllButton = root.querySelector('#reveal-all-button')
+  if (revealAllButton) {
+    if (revealed === total && total > 0) {
+      revealAllButton.setAttribute('hidden', '')
+    } else {
+      revealAllButton.removeAttribute('hidden')
     }
   }
 }

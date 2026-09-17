@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, formatDrawForCopy, cardImageUrl } from './app.js'
+import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, dealFanCards, formatDrawForCopy, cardImageUrl } from './app.js'
+import { TAROT_DECK } from '../../shared/deck.js'
 import type { Card, DrawResult } from '../../shared/types.js'
 
 describe('cardImageUrl', () => {
@@ -474,5 +475,65 @@ describe('renderFanView', () => {
       Array.from(positions).map((p) => p.style.getPropertyValue('--angle')),
     )
     expect(angles.size).toBe(78)
+  })
+})
+
+describe('reveal all', () => {
+  it('renders a Reveal All button before Draw Again', () => {
+    const container = document.createElement('div')
+    renderDrawResult(container, [
+      { card: TAROT_DECK[0], reversed: false },
+      { card: TAROT_DECK[1], reversed: true },
+    ])
+
+    const buttons = Array.from(container.querySelectorAll('.btn-group .btn')).map(
+      (b) => b.id,
+    )
+    expect(buttons).toContain('reveal-all-button')
+    expect(buttons.indexOf('reveal-all-button')).toBeLessThan(
+      buttons.indexOf('draw-again-button'),
+    )
+  })
+
+  it('flips every card, updates progress, and swaps buttons', () => {
+    const container = document.createElement('div')
+    renderDrawResult(container, [
+      { card: TAROT_DECK[0], reversed: false },
+      { card: TAROT_DECK[1], reversed: true },
+    ])
+
+    const revealAll = container.querySelector('#reveal-all-button') as HTMLButtonElement
+    revealAll.click()
+
+    expect(container.querySelectorAll('.card-flip.is-flipped')).toHaveLength(2)
+    expect(container.textContent).toContain('All cards revealed')
+    expect(container.querySelector('#copy-button')?.hasAttribute('hidden')).toBe(false)
+    expect(container.querySelector('#reveal-all-button')?.hasAttribute('hidden')).toBe(true)
+  })
+})
+
+describe('fan deal animation', () => {
+  it('gives each card its own deal index', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const positions = container.querySelectorAll<HTMLElement>('.fan-card-pos')
+    const indices = Array.from(positions).map((p) =>
+      p.style.getPropertyValue('--i').trim(),
+    )
+    expect(indices).toHaveLength(78)
+    expect(new Set(indices).size).toBe(78)
+    expect(indices[0]).toBe('0')
+  })
+
+  it('starts undealt and deals on demand', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const stage = container.querySelector('.fan-stage') as HTMLElement
+    expect(stage.classList.contains('is-dealt')).toBe(false)
+
+    dealFanCards(stage)
+    expect(stage.classList.contains('is-dealt')).toBe(true)
   })
 })
