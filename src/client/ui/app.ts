@@ -165,7 +165,40 @@ export function dealFanCards(stage: HTMLElement): void {
 }
 
 function onFanCardClick(event: Event): void {
-  toggleFanCard(event.currentTarget as HTMLButtonElement)
+  const tapped = event.currentTarget as HTMLButtonElement
+  toggleFanCard(nearestVisibleCard(tapped, event) ?? tapped)
+}
+
+/**
+ * The ring cards overlap, so the topmost card at the tap point is not
+ * always the one the user aimed at. Resolve the tap to the visible card
+ * whose center is nearest the tap point instead, so every visible part
+ * of a card selects that card.
+ */
+function nearestVisibleCard(tapped: HTMLButtonElement, event: Event): HTMLButtonElement | null {
+  // Keyboard activation carries no coordinates — keep the focused card.
+  if (!(event instanceof MouseEvent) || (event.clientX === 0 && event.clientY === 0)) return null
+
+  const root = tapped.closest('.app-container')
+  if (!root) return null
+
+  let best: HTMLButtonElement | null = null
+  let bestDist = Infinity
+  root.querySelectorAll('.fan-spinner .fan-card').forEach((el) => {
+    const card = el as HTMLButtonElement
+    // Chosen cards are hidden in place; they must not win the tap.
+    if (card.closest('.fan-card-pos')?.classList.contains('is-selected')) return
+    const rect = card.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return
+    const dx = rect.left + rect.width / 2 - event.clientX
+    const dy = rect.top + rect.height / 2 - event.clientY
+    const dist = dx * dx + dy * dy
+    if (dist < bestDist) {
+      bestDist = dist
+      best = card
+    }
+  })
+  return best
 }
 
 function prefersReducedMotion(): boolean {

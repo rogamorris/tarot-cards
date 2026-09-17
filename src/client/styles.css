@@ -919,7 +919,9 @@ body::before {
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  /* Extra headroom up top: the pinned cards' gold glow (32px blur) would
+     otherwise be clipped by the stage's overflow: hidden. */
+  padding: var(--space-8) var(--space-3) var(--space-2);
   pointer-events: none;
 }
 

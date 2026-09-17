@@ -733,3 +733,68 @@ describe('fan selection tray', () => {
     expect(firstFrames.some((t) => t.startsWith('translate(80px,'))).toBe(true)
   })
 })
+
+describe('fan tap targeting', () => {
+  function fakeRect(left: number, top: number, width = 54, height = 93): DOMRect {
+    return {
+      left, top, width, height,
+      right: left + width, bottom: top + height,
+      x: left, y: top,
+      toJSON: () => ({}),
+    } as DOMRect
+  }
+
+  function mockCardRect(card: HTMLButtonElement, left: number, top: number): void {
+    vi.spyOn(card, 'getBoundingClientRect').mockReturnValue(fakeRect(left, top))
+  }
+
+  it('selects the nearest card to the tap, not the topmost overlapping card', () => {
+    const container = document.createElement('div')
+    renderFanView(container)
+
+    // Two adjacent, overlapping cards: B starts 20px into A.
+    const cards = container.querySelectorAll('.fan-spinner .fan-card') as NodeListOf<HTMLButtonElement>
+    const cardA = cards[0]
+    const cardB = cards[1]
+    mockCardRect(cardA, 100, 100)
+    mockCardRect(cardB, 120, 100)
+
+    // The tap lands on B's box (topmost) but nearer A's center (127,146).
+    cardB.dispatchEvent(new MouseEvent('click', { clientX: 110, clientY: 146, bubbles: true }))
+
+    expect(cardA.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(true)
+    expect(cardB.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(false)
+  })
+
+  it('ignores hidden selected cards when finding the nearest card', () => {
+    const container = document.createElement('div')
+    renderFanView(container)
+
+    const cards = container.querySelectorAll('.fan-spinner .fan-card') as NodeListOf<HTMLButtonElement>
+    const cardA = cards[0]
+    const cardB = cards[1]
+    mockCardRect(cardA, 100, 100)
+    mockCardRect(cardB, 120, 100)
+
+    // Select A via keyboard-style activation (no coordinates): it hides in place.
+    cardA.click()
+    expect(cardA.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(true)
+
+    // Tap near A's old spot: the hidden card must not win, B does.
+    cardB.dispatchEvent(new MouseEvent('click', { clientX: 112, clientY: 146, bubbles: true }))
+
+    expect(cardA.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(true)
+    expect(cardB.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(true)
+  })
+
+  it('falls back to the tapped card for keyboard activation without coordinates', () => {
+    const container = document.createElement('div')
+    renderFanView(container)
+
+    const cards = container.querySelectorAll('.fan-spinner .fan-card') as NodeListOf<HTMLButtonElement>
+    const card = cards[5]
+    card.dispatchEvent(new MouseEvent('click', { clientX: 0, clientY: 0, bubbles: true }))
+
+    expect(card.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(true)
+  })
+})
