@@ -22,38 +22,13 @@ export function renderDrawButton(container: HTMLElement): void {
         <p class="subtitle">Draw your cards</p>
       </header>
 
-      <div class="input-group">
-        <label class="input-label" for="card-count">Number of cards to draw</label>
-        <div class="input-wrapper">
-          <input
-            type="number"
-            id="card-count"
-            class="input-field"
-            min="1"
-            max="10"
-            value="3"
-            placeholder="1-10"
-            aria-describedby="card-count-hint"
-          />
-        </div>
-        <p id="card-count-hint" class="input-hint">Choose between 1 and 10 cards</p>
-      </div>
-
       <button id="draw-button" class="btn btn-primary btn-lg btn-block">
-        Draw Cards
+        Shuffle and Deal
       </button>
     </div>
   `
 
   const button = container.querySelector('#draw-button') as HTMLButtonElement
-  const input = container.querySelector('#card-count') as HTMLInputElement
-
-  // Disable button if input is invalid
-  input.addEventListener('input', () => {
-    const value = parseInt(input.value)
-    button.disabled = !value || value < 1 || value > 10
-  })
-
   button.addEventListener('click', handleDraw)
 }
 
@@ -61,18 +36,17 @@ export function handleDraw(): void {
   const appElement = document.getElementById('app')
   if (!appElement) return
 
-  const input = document.getElementById('card-count') as HTMLInputElement
-  const count = parseInt(input.value) || 1
-
-  startSelection(appElement, count)
+  startSelection(appElement)
 }
+
+/** The most cards a single reading can hold — the spread layout is built for up to ten. */
+export const MAX_SELECTION = 10
 
 /**
  * Pure selection toggle for the fan view: adds the id when under the limit,
  * removes it when already selected, and refuses to exceed the limit.
  */
-export function toggleSelection(selected: string[], id: string, max: number): string[] {
-  if (selected.includes(id)) {
+export function toggleSelection(selected: string[], id: string, max: number): string[] {  if (selected.includes(id)) {
     return selected.filter((s) => s !== id)
   }
   if (selected.length >= max) {
@@ -82,14 +56,14 @@ export function toggleSelection(selected: string[], id: string, max: number): st
 }
 
 /** Begins the card-choosing ritual: shuffle animation, then the fan. */
-export function startSelection(container: HTMLElement, count: number): void {
-  renderShuffleView(container, count)
+export function startSelection(container: HTMLElement): void {
+  renderShuffleView(container)
   window.setTimeout(() => {
-    renderFanView(container, count)
+    renderFanView(container)
   }, 1700)
 }
 
-export function renderShuffleView(container: HTMLElement, count: number): void {
+export function renderShuffleView(container: HTMLElement): void {
   container.innerHTML = `
     <div class="app-container">
       <header>
@@ -105,12 +79,12 @@ export function renderShuffleView(container: HTMLElement, count: number): void {
         </div>
       </div>
 
-      <p class="fan-hint">Preparing ${count} card${count !== 1 ? 's' : ''} for you to choose</p>
+      <p class="fan-hint">Get ready to choose your cards</p>
     </div>
   `
 }
 
-export function renderFanView(container: HTMLElement, count: number): void {
+export function renderFanView(container: HTMLElement): void {
   // Deal order runs left-to-right across the ring: rank cards by their
   // horizontal position (x = R·sin θ) so the visible sweep starts at
   // the left edge instead of jumping around the circle.
@@ -137,11 +111,11 @@ export function renderFanView(container: HTMLElement, count: number): void {
   }).join('')
 
   container.innerHTML = `
-    <div class="app-container fan-app" data-choose-count="${count}">
+    <div class="app-container fan-app">
       <header>
         <h1 class="title">Tarot Cards</h1>
-        <p class="subtitle">Choose ${count} card${count !== 1 ? 's' : ''}</p>
-        <span id="fan-count" class="fan-count">0 of ${count} chosen</span>
+        <p class="subtitle">Choose your cards</p>
+        <span id="fan-count" class="fan-count">0 chosen</span>
       </header>
 
       <div class="fan-stage">
@@ -151,7 +125,7 @@ export function renderFanView(container: HTMLElement, count: number): void {
         <div class="fan-tray" aria-label="Chosen cards"></div>
       </div>
 
-      <p class="fan-hint">Tap a card to pull it out — tap again to put it back</p>
+      <p class="fan-hint">Tap the cards you want — tap again to put one back</p>
 
       <div class="btn-group">
         <button id="fan-cancel-button" class="btn btn-secondary">
@@ -211,13 +185,12 @@ export function toggleFanCard(card: HTMLButtonElement): void {
   const root = card.closest('.app-container') as HTMLElement
   if (!root) return
 
-  const count = parseInt(root.dataset.chooseCount || '0', 10)
   const currentlySelected = root.querySelectorAll('.fan-card-pos.is-selected .fan-card')
   const selectedIds = Array.from(currentlySelected).map(
     (el) => (el as HTMLButtonElement).dataset.cardId as string,
   )
 
-  const next = toggleSelection(selectedIds, card.dataset.cardId as string, count)
+  const next = toggleSelection(selectedIds, card.dataset.cardId as string, MAX_SELECTION)
   const isNowSelected = next.includes(card.dataset.cardId as string)
 
   card.closest('.fan-card-pos')?.classList.toggle('is-selected', isNowSelected)
@@ -232,7 +205,7 @@ export function toggleFanCard(card: HTMLButtonElement): void {
     }
   }
 
-  updateFanState(root, next.length, count)
+  updateFanState(root, next.length)
 }
 
 /**
@@ -298,15 +271,15 @@ export function dismissTrayClone(tray: HTMLElement, cardId: string): void {
   fade.onfinish = () => clone.remove()
 }
 
-export function updateFanState(root: HTMLElement, chosen: number, count: number): void {
+export function updateFanState(root: HTMLElement, chosen: number): void {
   const counter = root.querySelector('#fan-count')
   if (counter) {
-    counter.textContent = `${chosen} of ${count} chosen`
+    counter.textContent = `${chosen} chosen`
   }
 
   const revealButton = root.querySelector('#reveal-button')
   if (revealButton) {
-    if (chosen === count && count > 0) {
+    if (chosen > 0) {
       revealButton.removeAttribute('hidden')
     } else {
       revealButton.setAttribute('hidden', '')
