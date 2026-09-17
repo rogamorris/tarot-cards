@@ -988,17 +988,10 @@ body::before {
     var(--shadow-lg);
 }
 
-.fan-center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  text-align: center;
-}
-
 .fan-count {
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: var(--space-3) auto 0;
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);

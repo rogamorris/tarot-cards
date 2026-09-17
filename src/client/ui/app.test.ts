@@ -614,3 +614,14 @@ describe('spread entrance', () => {
     }
   })
 })
+
+describe('fan counter placement', () => {
+  it('keeps the chosen counter out of the card stage', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const stage = container.querySelector('.fan-stage') as HTMLElement
+    expect(stage.querySelector('#fan-count')).toBeNull()
+    expect(container.querySelector('#fan-count')?.textContent).toContain('0 of 3 chosen')
+  })
+})

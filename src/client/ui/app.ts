@@ -141,14 +141,12 @@ export function renderFanView(container: HTMLElement, count: number): void {
       <header>
         <h1 class="title">Tarot Cards</h1>
         <p class="subtitle">Choose ${count} card${count !== 1 ? 's' : ''}</p>
+        <span id="fan-count" class="fan-count">0 of ${count} chosen</span>
       </header>
 
       <div class="fan-stage">
         <div class="fan-spinner" aria-hidden="false">
           ${cardsHTML}
-        </div>
-        <div class="fan-center">
-          <span id="fan-count" class="fan-count">0 of ${count} chosen</span>
         </div>
       </div>
 
