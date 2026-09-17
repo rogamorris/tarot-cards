@@ -469,7 +469,9 @@ body::before {
   border: none;
   padding: 0;
   width: 100%;
-  aspect-ratio: 5 / 8;
+  /* Matches the Rider-Waite-Smith scan dimensions (500x863) so the
+     artwork fills the face with no cropping */
+  aspect-ratio: 500 / 863;
   perspective: 1200px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
