@@ -905,7 +905,7 @@ body::before {
 .fan-spinner {
   position: absolute;
   left: 50%;
-  top: calc(100% + 200px);
+  top: calc(100% + 220px); /* clears the selection tray */
   width: 0;
   height: 0;
 }
@@ -980,8 +980,30 @@ body::before {
   font-size: var(--text-lg);
 }
 
+/* The ring original steps aside once chosen — its pinned clone in the
+   tray carries the gold treatment while the rest of the ring keeps
+   circling. The slot is preserved so the card can fly back. */
 .fan-card-pos.is-selected .fan-card {
-  transform: scale(1.2);
+  visibility: hidden;
+}
+
+.fan-tray {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  pointer-events: none;
+}
+
+.fan-tray .fan-card {
+  pointer-events: auto;
+  width: 40px;
   box-shadow:
     0 0 0 2px var(--color-gold-light),
     0 0 32px rgba(245, 158, 11, 0.5),
@@ -1024,6 +1046,6 @@ body::before {
   }
 
   .fan-spinner {
-    top: calc(100% + 280px);
+    top: calc(100% + 300px); /* clears the selection tray */
   }
 }

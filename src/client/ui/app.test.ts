@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, dealFanCards, flyCardsToSpread, formatDrawForCopy, cardImageUrl } from './app.js'
+import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, dealFanCards, flyCardsToSpread, handleRevealSelection, formatDrawForCopy, cardImageUrl } from './app.js'
 import { TAROT_DECK } from '../../shared/deck.js'
 import type { Card, DrawResult } from '../../shared/types.js'
 
@@ -623,5 +623,117 @@ describe('fan counter placement', () => {
     const stage = container.querySelector('.fan-stage') as HTMLElement
     expect(stage.querySelector('#fan-count')).toBeNull()
     expect(container.querySelector('#fan-count')?.textContent).toContain('0 of 3 chosen')
+  })
+})
+
+describe('fan selection tray', () => {
+  const originalAnimate = window.HTMLElement.prototype.animate
+  const originalMatchMedia = window.matchMedia
+
+  afterEach(() => {
+    if (originalAnimate) {
+      window.HTMLElement.prototype.animate = originalAnimate
+    } else {
+      delete (window.HTMLElement.prototype as { animate?: unknown }).animate
+    }
+    window.matchMedia = originalMatchMedia
+    document.body.innerHTML = ''
+    vi.restoreAllMocks()
+  })
+
+  function stubAnimate() {
+    const stub = vi.fn().mockReturnValue({})
+    window.HTMLElement.prototype.animate =
+      stub as unknown as typeof window.HTMLElement.prototype.animate
+    return stub
+  }
+
+  function stubReducedMotion() {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia
+  }
+
+  function renderFan(containerCount = 3) {
+    const container = document.createElement('div')
+    renderFanView(container, containerCount)
+    const card = container.querySelector('.fan-spinner .fan-card') as HTMLButtonElement
+    const tray = container.querySelector('.fan-tray') as HTMLElement
+    return { container, card, tray }
+  }
+
+  it('pins a clone of the chosen card to the tray at the top of the stage', () => {
+    const { card, tray } = renderFan()
+
+    card.click()
+
+    expect(tray).not.toBeNull()
+    const clone = tray.querySelector('.fan-card') as HTMLButtonElement | null
+    expect(clone?.dataset.cardId).toBe(card.dataset.cardId)
+    expect(clone).not.toBe(card)
+  })
+
+  it('flies the clone from the ring position up to the tray', () => {
+    const animateStub = stubAnimate()
+    const { card } = renderFan()
+
+    card.click()
+
+    expect(animateStub).toHaveBeenCalledTimes(1)
+    const [keyframes] = animateStub.mock.calls[0]
+    expect(keyframes[0].transform).toContain('translate(')
+    expect(keyframes[0].transform).toContain('scale(')
+    expect(keyframes[1].transform).toBe('translate(0px, 0px) scale(1)')
+  })
+
+  it('removes the tray clone when the card is deselected', () => {
+    stubReducedMotion()
+    const { card, tray } = renderFan()
+
+    card.click()
+    expect(tray.querySelectorAll('.fan-card')).toHaveLength(1)
+    card.click()
+
+    expect(tray.querySelectorAll('.fan-card')).toHaveLength(0)
+  })
+
+  it('tapping the tray clone puts the card back on the ring', () => {
+    stubReducedMotion()
+    const { container, card, tray } = renderFan()
+
+    card.click()
+    const clone = tray.querySelector('.fan-card') as HTMLButtonElement
+    clone.click()
+
+    expect(card.closest('.fan-card-pos')?.classList.contains('is-selected')).toBe(false)
+    expect(container.querySelector('#fan-count')?.textContent).toContain('0 of 3')
+    expect(tray.querySelectorAll('.fan-card')).toHaveLength(0)
+  })
+
+  it('reveals the spread flying from the tray positions, not the ring', () => {
+    const container = document.createElement('div')
+    container.id = 'app'
+    document.body.appendChild(container)
+    renderFanView(container, 2)
+
+    const cards = container.querySelectorAll('.fan-spinner .fan-card') as NodeListOf<HTMLButtonElement>
+    cards[0].click()
+    cards[1].click()
+
+    const clones = container.querySelectorAll('.fan-tray .fan-card')
+    vi.spyOn(clones[0], 'getBoundingClientRect').mockReturnValue({
+      left: 10, top: 10, width: 40, height: 69,
+    } as DOMRect)
+    vi.spyOn(clones[1], 'getBoundingClientRect').mockReturnValue({
+      left: 60, top: 10, width: 40, height: 69,
+    } as DOMRect)
+
+    const animateStub = stubAnimate()
+    handleRevealSelection()
+
+    const firstFrames = animateStub.mock.calls.map(
+      (call) => (call[0] as Keyframe[])[0].transform as string,
+    )
+    // Tray clone centers (30 and 80) become the flight origins.
+    expect(firstFrames.some((t) => t.startsWith('translate(30px,'))).toBe(true)
+    expect(firstFrames.some((t) => t.startsWith('translate(80px,'))).toBe(true)
   })
 })

@@ -148,6 +148,7 @@ export function renderFanView(container: HTMLElement, count: number): void {
         <div class="fan-spinner" aria-hidden="false">
           ${cardsHTML}
         </div>
+        <div class="fan-tray" aria-label="Chosen cards"></div>
       </div>
 
       <p class="fan-hint">Tap a card to pull it out — tap again to put it back</p>
@@ -190,7 +191,23 @@ export function dealFanCards(stage: HTMLElement): void {
 }
 
 function onFanCardClick(event: Event): void {
-  const card = event.currentTarget as HTMLButtonElement
+  toggleFanCard(event.currentTarget as HTMLButtonElement)
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/**
+ * Toggles a ring card's selected state. A chosen card is pinned as a
+ * clone in the tray at the top of the stage, where it stays put while
+ * the rest of the ring keeps circling; the ring original is hidden in
+ * place so its slot is preserved for the flight back.
+ */
+export function toggleFanCard(card: HTMLButtonElement): void {
   const root = card.closest('.app-container') as HTMLElement
   if (!root) return
 
@@ -206,7 +223,79 @@ function onFanCardClick(event: Event): void {
   card.closest('.fan-card-pos')?.classList.toggle('is-selected', isNowSelected)
   card.setAttribute('aria-pressed', String(isNowSelected))
 
+  const tray = root.querySelector('.fan-tray') as HTMLElement | null
+  if (tray) {
+    if (isNowSelected) {
+      flyCardToTray(card, tray)
+    } else {
+      dismissTrayClone(tray, card.dataset.cardId as string)
+    }
+  }
+
   updateFanState(root, next.length, count)
+}
+
+/**
+ * Pins a clone of the chosen ring card to the tray, flying it from its
+ * current spot on the ring up to the tray.
+ */
+export function flyCardToTray(card: HTMLButtonElement, tray: HTMLElement): void {
+  const cardId = card.dataset.cardId as string
+  const alreadyPinned = Array.from(tray.children).some(
+    (el) => (el as HTMLElement).dataset.cardId === cardId,
+  )
+  if (alreadyPinned) return
+
+  const from = card.getBoundingClientRect()
+
+  const clone = card.cloneNode(true) as HTMLButtonElement
+  clone.setAttribute('aria-pressed', 'true')
+  clone.setAttribute('aria-label', 'Chosen card — tap to put it back')
+  clone.addEventListener('click', () => toggleFanCard(card))
+  tray.appendChild(clone)
+
+  if (prefersReducedMotion() || typeof clone.animate !== 'function') return
+
+  const to = clone.getBoundingClientRect()
+  const dx = from.left - to.left
+  const dy = from.top - to.top
+  const scale = from.width / to.width || 1
+
+  clone.animate(
+    [
+      { transform: `translate(${dx}px, ${dy}px) scale(${scale})` },
+      { transform: 'translate(0px, 0px) scale(1)' },
+    ],
+    {
+      duration: 450,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      fill: 'backwards',
+    },
+  )
+}
+
+/**
+ * Removes a card's clone from the tray when it is put back on the ring.
+ */
+export function dismissTrayClone(tray: HTMLElement, cardId: string): void {
+  const clone = Array.from(tray.children).find(
+    (el) => (el as HTMLElement).dataset.cardId === cardId,
+  ) as HTMLElement | undefined
+  if (!clone) return
+
+  if (prefersReducedMotion() || typeof clone.animate !== 'function') {
+    clone.remove()
+    return
+  }
+
+  const fade = clone.animate(
+    [
+      { opacity: 1, transform: 'scale(1)' },
+      { opacity: 0, transform: 'scale(0.6)' },
+    ],
+    { duration: 200, easing: 'ease-out', fill: 'forwards' },
+  )
+  fade.onfinish = () => clone.remove()
 }
 
 export function updateFanState(root: HTMLElement, chosen: number, count: number): void {
@@ -233,9 +322,19 @@ export function handleRevealSelection(): void {
     appElement.querySelectorAll('.fan-card-pos.is-selected .fan-card'),
   ) as HTMLButtonElement[]
   const ids = selectedCards.map((el) => el.dataset.cardId as string)
-  // Capture fan positions before the spread replaces them, so the
-  // chosen cards can fly into their new slots.
-  const fromRects = selectedCards.map((el) => el.getBoundingClientRect())
+  // Capture the pinned tray positions before the spread replaces them,
+  // so the chosen cards fly into their new slots from where the user
+  // sees them (the hidden ring originals are still circling behind).
+  const trayRects = new Map<string, DOMRect>()
+  appElement.querySelectorAll('.fan-tray .fan-card').forEach((el) => {
+    trayRects.set(
+      (el as HTMLButtonElement).dataset.cardId as string,
+      el.getBoundingClientRect(),
+    )
+  })
+  const fromRects = ids
+    .map((id) => trayRects.get(id))
+    .filter((rect): rect is DOMRect => !!rect)
 
   currentDraw = drawSelectedCards(ids)
   renderDrawResult(appElement, currentDraw)
@@ -245,14 +344,11 @@ export function handleRevealSelection(): void {
 }
 
 /**
- * Flies spread cards in from their positions on the fan ring,
- * keeping the selection-to-reveal transition continuous.
+ * Flies spread cards in from their pinned positions in the selection
+ * tray, keeping the selection-to-reveal transition continuous.
  */
 export function flyCardsToSpread(slots: HTMLElement[], fromRects: DOMRect[]): void {
-  const prefersReducedMotion =
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (prefersReducedMotion) return
+  if (prefersReducedMotion()) return
 
   slots.forEach((slot, index) => {
     const from = fromRects[index]
