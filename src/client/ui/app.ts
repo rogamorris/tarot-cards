@@ -111,10 +111,22 @@ export function renderShuffleView(container: HTMLElement, count: number): void {
 }
 
 export function renderFanView(container: HTMLElement, count: number): void {
+  // Deal order runs left-to-right across the ring: rank cards by their
+  // horizontal position (x = R·sin θ) so the visible sweep starts at
+  // the left edge instead of jumping around the circle.
+  const dealRank = new Map<number, number>()
+  TAROT_DECK.map((_, index) => index)
+    .sort(
+      (a, b) =>
+        Math.sin((a / TAROT_DECK.length) * Math.PI * 2) -
+        Math.sin((b / TAROT_DECK.length) * Math.PI * 2),
+    )
+    .forEach((cardIndex, rank) => dealRank.set(cardIndex, rank))
+
   const cardsHTML = TAROT_DECK.map((card, index) => {
     const angle = (index / TAROT_DECK.length) * 360
     return `
-      <div class="fan-card-pos" style="--angle: ${angle}deg; --i: ${index};">
+      <div class="fan-card-pos" style="--angle: ${angle}deg; --i: ${dealRank.get(index)};">
         <div class="fan-card-upright">
           <button class="fan-card" data-card-id="${card.id}" aria-pressed="false" aria-label="Choose a card">
             <span class="card-back-symbol">✦</span>
@@ -219,12 +231,53 @@ export function handleRevealSelection(): void {
   const appElement = document.getElementById('app')
   if (!appElement) return
 
-  const ids = Array.from(
+  const selectedCards = Array.from(
     appElement.querySelectorAll('.fan-card-pos.is-selected .fan-card'),
-  ).map((el) => (el as HTMLButtonElement).dataset.cardId as string)
+  ) as HTMLButtonElement[]
+  const ids = selectedCards.map((el) => el.dataset.cardId as string)
+  // Capture fan positions before the spread replaces them, so the
+  // chosen cards can fly into their new slots.
+  const fromRects = selectedCards.map((el) => el.getBoundingClientRect())
 
   currentDraw = drawSelectedCards(ids)
   renderDrawResult(appElement, currentDraw)
+
+  const slots = Array.from(appElement.querySelectorAll('.card-item')) as HTMLElement[]
+  flyCardsToSpread(slots, fromRects)
+}
+
+/**
+ * Flies spread cards in from their positions on the fan ring,
+ * keeping the selection-to-reveal transition continuous.
+ */
+export function flyCardsToSpread(slots: HTMLElement[], fromRects: DOMRect[]): void {
+  const prefersReducedMotion =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (prefersReducedMotion) return
+
+  slots.forEach((slot, index) => {
+    const from = fromRects[index]
+    if (!from || typeof slot.animate !== 'function') return
+
+    const to = slot.getBoundingClientRect()
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2)
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2)
+    const scale = from.width / to.width || 1
+
+    slot.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) scale(${scale})` },
+        { transform: 'translate(0px, 0px) scale(1)' },
+      ],
+      {
+        duration: 650,
+        delay: index * 90,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'backwards',
+      },
+    )
+  })
 }
 
 export function renderDrawResult(container: HTMLElement, draw: DrawResult): void {

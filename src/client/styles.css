@@ -905,7 +905,7 @@ body::before {
 .fan-spinner {
   position: absolute;
   left: 50%;
-  top: calc(100% + 150px);
+  top: calc(100% + 200px);
   width: 0;
   height: 0;
 }
@@ -1027,10 +1027,10 @@ body::before {
 
 @media (min-width: 700px) {
   .fan-stage {
-    --fan-radius: 600px;
+    --fan-radius: 500px;
   }
 
   .fan-spinner {
-    top: calc(100% + 200px);
+    top: calc(100% + 280px);
   }
 }

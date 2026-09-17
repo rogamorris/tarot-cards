@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, dealFanCards, formatDrawForCopy, cardImageUrl } from './app.js'
+import { renderDrawButton, renderDrawResult, renderShuffleView, renderFanView, toggleSelection, dealFanCards, flyCardsToSpread, formatDrawForCopy, cardImageUrl } from './app.js'
 import { TAROT_DECK } from '../../shared/deck.js'
 import type { Card, DrawResult } from '../../shared/types.js'
 
@@ -523,7 +523,6 @@ describe('fan deal animation', () => {
     )
     expect(indices).toHaveLength(78)
     expect(new Set(indices).size).toBe(78)
-    expect(indices[0]).toBe('0')
   })
 
   it('starts undealt and deals on demand', () => {
@@ -535,5 +534,83 @@ describe('fan deal animation', () => {
 
     dealFanCards(stage)
     expect(stage.classList.contains('is-dealt')).toBe(true)
+  })
+})
+
+describe('fan deal order', () => {
+  const dealEntries = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll<HTMLElement>('.fan-card-pos')).map((p) => ({
+      rank: p.style.getPropertyValue('--i').trim(),
+      angle: parseFloat(p.style.getPropertyValue('--angle')),
+    }))
+
+  const sin = (angle: number) => Math.sin((angle * Math.PI) / 180)
+
+  it('starts the deal at the leftmost card', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const entries = dealEntries(container)
+    const leftmost = entries.reduce((a, b) => (sin(a.angle) < sin(b.angle) ? a : b))
+    expect(leftmost.rank).toBe('0')
+  })
+
+  it('deals monotonically left-to-right across the ring', () => {
+    const container = document.createElement('div')
+    renderFanView(container, 3)
+
+    const sins = dealEntries(container)
+      .sort((a, b) => parseInt(a.rank, 10) - parseInt(b.rank, 10))
+      .map((e) => sin(e.angle))
+
+    // The horizontal position never moves right-to-left as the deal
+    // progresses (within floating-point noise for symmetric cards).
+    for (let k = 1; k < sins.length; k++) {
+      expect(sins[k]).toBeGreaterThanOrEqual(sins[k - 1] - 1e-9)
+    }
+    expect(new Set(dealEntries(container).map((e) => e.rank)).size).toBe(78)
+  })
+})
+
+describe('spread entrance', () => {
+  const fakeRect = (x: number, y: number, w: number, h: number) =>
+    ({ left: x, top: y, width: w, height: h }) as DOMRect
+
+  const makeSlots = (count: number) => {
+    const stubs = Array.from({ length: count }, () => vi.fn())
+    const slots = stubs.map((stub) => {
+      const el = document.createElement('div')
+      ;(el as unknown as { animate: unknown }).animate = stub
+      return el
+    })
+    return { slots, stubs }
+  }
+
+  it('flies each slot from its fan position to its spread position', () => {
+    const { slots, stubs } = makeSlots(2)
+    const from = [fakeRect(10, 20, 54, 93), fakeRect(300, 20, 54, 93)]
+
+    flyCardsToSpread(slots, from)
+
+    expect(stubs[0]).toHaveBeenCalledTimes(1)
+    const [keyframes, options] = stubs[0].mock.calls[0]
+    expect(keyframes[0].transform).toContain('translate(')
+    expect(keyframes[0].transform).toContain('scale(')
+    expect(keyframes[1].transform).toBe('translate(0px, 0px) scale(1)')
+    expect(options.delay).toBe(0)
+    expect(stubs[1].mock.calls[0][1].delay).toBeGreaterThan(0)
+  })
+
+  it('skips the flight when reduced motion is preferred', () => {
+    const original = window.matchMedia
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia
+    try {
+      const { slots, stubs } = makeSlots(2)
+      flyCardsToSpread(slots, [fakeRect(0, 0, 54, 93), fakeRect(0, 0, 54, 93)])
+      expect(stubs[0]).not.toHaveBeenCalled()
+      expect(stubs[1]).not.toHaveBeenCalled()
+    } finally {
+      window.matchMedia = original
+    }
   })
 })
